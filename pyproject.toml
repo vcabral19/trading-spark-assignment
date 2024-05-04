@@ -1,0 +1,37 @@
+[tool.poetry]
+name = "spark-assignment-2.0.0"
+version = "0.1.0"
+description = "some joins for a pyspark assignment"
+authors = ["vcabral19 <vitorcabral19@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "3.8.16"
+pyspark = "^3.5.1"
+
+[tool.poetry.dev-dependencies]
+pytest = "^8.2.0"
+black = "^24.4.2"
+mypy = "^1.10.0"
+isort = "^5.13.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.packages]]
+include = "src"
+
+[tool.black]
+line-length = 120
+target-version = ['py38']
+include = '\.pyi?$'
+exclude = '\.git|\.hg|\.mypy_cache|\.tox|\.venv|_build|buck-out|build|dist'
+
+[tool.mypy]
+ignore_missing_imports = true
+files = ["src"]
+
+[tool.isort]
+profile = "black"
+line_length = 120
