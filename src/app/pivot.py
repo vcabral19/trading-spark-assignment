@@ -1,7 +1,10 @@
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, SparkSession, Window
+from pyspark.sql.functions import col, last, when
+
+from src.app.fill import fill
 
 
-def pivot(trades: DataFrame, prices: DataFrame) -> DataFrame:
+def pivot(trade_events_df: DataFrame, price_events_df: DataFrame, spark: SparkSession) -> DataFrame:
     """
     Pivot and fill the columns on the event id so that each row contains a
     column for each id + column combination where the value is the most recent
@@ -24,4 +27,25 @@ def pivot(trades: DataFrame, prices: DataFrame) -> DataFrame:
     :param prices: DataFrame of price events
     :return: A DataFrame of the combined events and pivoted columns.
     """
-    raise NotImplementedError()
+    filled_df = fill(trade_events_df, price_events_df)
+    filled_df.cache()
+
+    distinct_ids_list = filled_df.select("id").distinct().rdd.flatMap(lambda x: x).collect()
+    broadcast_ids = spark.sparkContext.broadcast(distinct_ids_list)
+
+    window_spec = (
+        Window.partitionBy("id").orderBy("timestamp").rowsBetween(Window.unboundedPreceding, Window.currentRow)
+    )
+
+    for id_val in broadcast_ids.value:
+        for measure in ["bid", "ask", "price", "quantity"]:
+            col_name = f"{id_val}_{measure}"
+            filled_df = filled_df.withColumn(col_name, when(col("id") == id_val, col(measure)))
+
+            filled_df = filled_df.withColumn(col_name, last(col(col_name), True).over(window_spec))
+
+    column_order = ["id", "timestamp", "bid", "ask", "price", "quantity"] + [
+        f"{id}_{measure}" for id in broadcast_ids.value for measure in ["bid", "ask", "price", "quantity"]
+    ]
+    final_df = filled_df.select(column_order)
+    return final_df

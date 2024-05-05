@@ -12,7 +12,7 @@ clean:
 	rm -rf *.egg-info
 
 run:
-	poetry run spark-submit src/main.py
+	poetry run spark-submit src/app/main.py
 
 lint:
 	poetry run mypy src

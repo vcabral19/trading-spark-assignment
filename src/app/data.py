@@ -1,5 +1,5 @@
-import pyspark.sql.types as T
 from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql.types import DoubleType, LongType, StructField, StructType
 
 
 def load_trades(spark: SparkSession) -> DataFrame:
@@ -9,12 +9,12 @@ def load_trades(spark: SparkSession) -> DataFrame:
         (20, 1546300804000, 12.67, 300.000),
         (10, 1546300807000, 37.50, 200.000),
     ]
-    schema = T.StructType(
+    schema = StructType(
         [
-            T.StructField("id", T.LongType()),
-            T.StructField("timestamp", T.LongType()),
-            T.StructField("price", T.DoubleType()),
-            T.StructField("quantity", T.DoubleType()),
+            StructField("id", LongType()),
+            StructField("timestamp", LongType()),
+            StructField("price", DoubleType()),
+            StructField("quantity", DoubleType()),
         ]
     )
 
@@ -27,12 +27,12 @@ def load_prices(spark: SparkSession) -> DataFrame:
         (10, 1546300802000, 37.51, 37.52),
         (10, 1546300806000, 37.50, 37.51),
     ]
-    schema = T.StructType(
+    schema = StructType(
         [
-            T.StructField("id", T.LongType()),
-            T.StructField("timestamp", T.LongType()),
-            T.StructField("bid", T.DoubleType()),
-            T.StructField("ask", T.DoubleType()),
+            StructField("id", LongType()),
+            StructField("timestamp", LongType()),
+            StructField("bid", DoubleType()),
+            StructField("ask", DoubleType()),
         ]
     )
 
