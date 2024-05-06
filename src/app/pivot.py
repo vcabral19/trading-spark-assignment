@@ -1,5 +1,6 @@
+import pyspark.sql.functions as F
 from pyspark.sql import DataFrame, SparkSession, Window
-from pyspark.sql.functions import col, last, when
+from pyspark.sql.functions import col, last, when, max as spark_max, broadcast, lit
 
 from src.app.fill import fill
 
@@ -27,25 +28,28 @@ def pivot(trade_events_df: DataFrame, price_events_df: DataFrame, spark: SparkSe
     :param prices: DataFrame of price events
     :return: A DataFrame of the combined events and pivoted columns.
     """
-    filled_df = fill(trade_events_df, price_events_df)
-    filled_df.cache()
-
-    distinct_ids_list = filled_df.select("id").distinct().rdd.flatMap(lambda x: x).collect()
-    broadcast_ids = spark.sparkContext.broadcast(distinct_ids_list)
-
-    window_spec = (
-        Window.partitionBy("id").orderBy("timestamp").rowsBetween(Window.unboundedPreceding, Window.currentRow)
-    )
-
-    for id_val in broadcast_ids.value:
+    # Combine the data into a single DataFrame
+    combined_df = trade_events_df.unionByName(price_events_df, allowMissingColumns=True)
+    
+    # Get distinct IDs from the DataFrame
+    distinct_ids = [row['id'] for row in combined_df.select("id").distinct().collect()]
+    
+    # Define a global window specification ordered by timestamp
+    window_spec = Window.orderBy("timestamp").rowsBetween(Window.unboundedPreceding, Window.currentRow)
+    
+    # Create columns for each ID and measure combination without affecting the original columns
+    for id_val in distinct_ids:
         for measure in ["bid", "ask", "price", "quantity"]:
             col_name = f"{id_val}_{measure}"
-            filled_df = filled_df.withColumn(col_name, when(col("id") == id_val, col(measure)))
-
-            filled_df = filled_df.withColumn(col_name, last(col(col_name), True).over(window_spec))
-
-    column_order = ["id", "timestamp", "bid", "ask", "price", "quantity"] + [
-        f"{id}_{measure}" for id in broadcast_ids.value for measure in ["bid", "ask", "price", "quantity"]
+            combined_df = combined_df.withColumn(
+                col_name,
+                last(when(col("id") == id_val, col(measure)), ignorenulls=True).over(window_spec)
+            )
+    
+    # Select the required columns to structure the DataFrame as specified
+    select_exprs = ["id", "timestamp", "bid", "ask", "price", "quantity"] + [
+        f"{id}_{metric}" for id in distinct_ids for metric in ["bid", "ask", "price", "quantity"]
     ]
-    final_df = filled_df.select(column_order)
-    return final_df
+    
+    return combined_df.select(select_exprs)
+
