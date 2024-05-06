@@ -25,7 +25,6 @@ def fill(trade_events_df: DataFrame, price_events_df: DataFrame) -> DataFrame:
     :param prices: DataFrame of price events
     :return: A DataFrame of the combined events and filled.
     """
-    # align df schemas
     trade_events_df = trade_events_df.withColumn("bid", lit(None).cast(DoubleType())).withColumn(
         "ask", lit(None).cast(DoubleType())
     )
@@ -33,12 +32,10 @@ def fill(trade_events_df: DataFrame, price_events_df: DataFrame) -> DataFrame:
         "quantity", lit(None).cast(DoubleType())
     )
 
-    # union by name works by matching dataframes columns by name instead of positions
     combined_events_df = trade_events_df.unionByName(
         price_events_df
     )  # allowMissingColumns=True would make adding the columns obsolete
 
-    # as we are going to apply the window for several columns in the next steps, caching the result of the union might help
     combined_events_df.cache()
 
     window_spec = (
