@@ -160,7 +160,7 @@ def test_pivot_functionality_with_default_data(spark: SparkSession, input_data: 
     expected_df = spark.createDataFrame(expected_data, schema=expected_schema)
 
     trades_df, prices_df = input_data
-    result_df = pivot(trades_df, prices_df, spark)
+    result_df = pivot(trades_df, prices_df)
 
     assert_dataframes_equal(result_df, expected_df)
 
@@ -305,6 +305,6 @@ def test_pivot_functionality_with_more_ids(spark: SparkSession, multiple_id_inpu
     expected_df = spark.createDataFrame(expected_data, schema=expected_schema)
 
     trades_df, prices_df = multiple_id_input_data
-    result_df = pivot(trades_df, prices_df, spark)
+    result_df = pivot(trades_df, prices_df)
 
     assert_dataframes_equal(result_df, expected_df)

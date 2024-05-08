@@ -17,7 +17,7 @@ def main():
     print("Printing forward fill DataFrame: ")
     fill(trades, prices).show()
 
-    pivot(trades, prices, spark).show()
+    pivot(trades, prices).show()
 
 
 if __name__ == "__main__":

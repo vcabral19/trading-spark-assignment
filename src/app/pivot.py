@@ -1,12 +1,10 @@
 import pyspark.sql.functions as F
-from pyspark.sql import DataFrame, SparkSession, Window
-from pyspark.sql.functions import col, last, to_date, when
+from pyspark.sql import DataFrame, Window
+from pyspark.sql.functions import col, last, when
 from pyspark.sql.types import TimestampType
 
-from src.app.fill import fill
 
-
-def pivot(trade_events_df: DataFrame, price_events_df: DataFrame, spark: SparkSession) -> DataFrame:
+def pivot(trade_events_df: DataFrame, price_events_df: DataFrame) -> DataFrame:
     """
     Pivot and fill the columns on the event id so that each row contains a
     column for each id + column combination where the value is the most recent
@@ -58,3 +56,8 @@ def pivot(trade_events_df: DataFrame, price_events_df: DataFrame, spark: SparkSe
     combined_df.unpersist()
 
     return result_df
+
+
+# consider doing by shorter interval (hour) and do some forward fill
+# inside of this shorter interval to guarantee we can drag the lastest value of the hour to the next
+# save the last line of a day of the next day and then use it to ff
