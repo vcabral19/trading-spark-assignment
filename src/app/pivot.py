@@ -1,6 +1,5 @@
 import pyspark.sql.functions as F
 from pyspark.sql import DataFrame, Window
-from pyspark.sql.functions import col, last, when
 from pyspark.sql.types import TimestampType
 
 
@@ -29,35 +28,32 @@ def pivot(trade_events_df: DataFrame, price_events_df: DataFrame) -> DataFrame:
     """
     combined_df = trade_events_df.unionByName(price_events_df, allowMissingColumns=True)
 
+    partition_by_day = F.date_trunc("day", F.col("timestamp").cast(TimestampType()))
+    combined_df = combined_df.repartition(partition_by_day)
     combined_df.cache()
 
     distinct_ids = [row.id for row in combined_df.select("id").distinct().collect()]
 
     # partition by day as it seems it might the most relevant interval that still scales for several days
-    # this makes it necessary for the data of a whole day to fit into 1 node memory
     window_spec = (
-        Window.partitionBy(F.date_trunc("day", col("timestamp").cast(TimestampType())))
-        .orderBy("timestamp")
+        Window.partitionBy(partition_by_day)
+        .orderBy(F.col("timestamp"))
         .rowsBetween(Window.unboundedPreceding, Window.currentRow)
     )
 
+    select_expressions = ["id", "timestamp", "bid", "ask", "price", "quantity"]
     for id_val in distinct_ids:
         for measure in ["bid", "ask", "price", "quantity"]:
             col_name = f"{id_val}_{measure}"
-            combined_df = combined_df.withColumn(col_name, when(col("id") == id_val, col(measure)).otherwise(None))
-            combined_df = combined_df.withColumn(col_name, last(col(col_name), ignorenulls=True).over(window_spec))
+            expr = (
+                F.last(F.when(F.col("id") == id_val, F.col(measure)).otherwise(None), ignorenulls=True)
+                .over(window_spec)
+                .alias(col_name)
+            )
+            select_expressions.append(expr)
 
-    select_columns = ["id", "timestamp", "bid", "ask", "price", "quantity"] + [
-        f"{id}_{measure}" for id in distinct_ids for measure in ["bid", "ask", "price", "quantity"]
-    ]
-
-    result_df = combined_df.select(select_columns)
+    result_df = combined_df.select(*select_expressions)
 
     combined_df.unpersist()
 
     return result_df
-
-
-# consider doing by shorter interval (hour) and do some forward fill
-# inside of this shorter interval to guarantee we can drag the lastest value of the hour to the next
-# save the last line of a day of the next day and then use it to ff

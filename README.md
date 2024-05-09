@@ -1,40 +1,43 @@
-# Data Engineer Assignment
+# Trading Data Spark Assignment
 
-This assignment consists of two parts, an architectural design and a coding challenge. 
+### Note
+I've setup pyspark==3.5.1 instead of pyspark==2.3.0 as suggested in the requirements.txt just because **2.3.0 instalation is broken on poetry**. As it would be more convenient to me to use poetry to setting up the project structure and development environment I've upgraded the version to the most up to date.
+The code should run ok in pyspark==2.3.0 anyway as I'm using no newly introduced features.
 
-## Architecture
+Poetry also isolates the environment to you can install this version without fear of interfering in your setup.
 
-We have online trading systems that provide real-time data and we want to make 
-it available for historical analysis. The data that we want to process and store consists 
-of metadata (timestamp of event, source system ID) and payload (stock ID, bid price, ask 
-price). This data can be retrieved from the source systems in two different ways:
+## How to install
 
- - A subscription API (i.e. gRPC)
- - An event log file in CSV format (written every minute on a disk, retained for 1 day)
+[**Install Poetry**](https://python-poetry.org/docs/)
+Strongly recommend to use pipx to do it!
 
-Note, trading systems are network latency critical and are active while an exchange 
-is open i.e 09:00-18:00.
+and then:
 
-Design a system that will collect events from such trading systems, process and store it for historical 
-analysis. We expect a system level design describing the major components and reasons for using them. 
-Limit the detail to a single page.
+```bash
+make install
+```
 
+## How to execute the pipeline
+Simple run:
+```bash
+make run
+```
 
-## Spark
+Alternatively you can run main.py directly if you want:
+```bash
+spark-submit src/app/main.py
+```
 
-Attached is a small PySpark project. There are two datasets, trades and prices, that need to 
-be combined in two ways. Examples of the expected output are in the source.
+## How to develop
 
-Your answer should be a runnable `main.py` script that shows the results from each join operation,
-matching the examples in the docstrings.
+After updating the code:
 
-Include an evaluation of your solution, how it would scale to 100,000s events over multiple 
-days and 100s of ids, and if your approach would be different at that scale.
+Run the tests to check if you haven't broken anything
+```bash
+make test
+```
 
-## Review
-
-Your design, code and evaluation will be reviewed, and a subject for discussion during a 
-technical interview.
-
-# 200 micro seconds latency
-# 200 order per second limit
+If everything is all right with the tests, for linting:
+```bash
+make format
+```

@@ -1,6 +1,6 @@
+import pyspark.sql.functions as F
 from pyspark.sql import DataFrame, Window
-from pyspark.sql.functions import col, last, lit
-from pyspark.sql.types import DoubleType
+from pyspark.sql.types import DoubleType, TimestampType
 
 
 def fill(trade_events_df: DataFrame, price_events_df: DataFrame) -> DataFrame:
@@ -25,28 +25,34 @@ def fill(trade_events_df: DataFrame, price_events_df: DataFrame) -> DataFrame:
     :param prices: DataFrame of price events
     :return: A DataFrame of the combined events and filled.
     """
-    trade_events_df = trade_events_df.withColumn("bid", lit(None).cast(DoubleType())).withColumn(
-        "ask", lit(None).cast(DoubleType())
+    trade_events_df = trade_events_df.withColumn("bid", F.lit(None).cast(DoubleType())).withColumn(
+        "ask", F.lit(None).cast(DoubleType())
     )
-    price_events_df = price_events_df.withColumn("price", lit(None).cast(DoubleType())).withColumn(
-        "quantity", lit(None).cast(DoubleType())
+    price_events_df = price_events_df.withColumn("price", F.lit(None).cast(DoubleType())).withColumn(
+        "quantity", F.lit(None).cast(DoubleType())
     )
 
     combined_events_df = trade_events_df.unionByName(
         price_events_df
     )  # allowMissingColumns=True would make adding the columns obsolete
 
+    partition_by_day = F.date_trunc("day", F.col("timestamp").cast(TimestampType()))
+    combined_events_df = combined_events_df.repartition(partition_by_day)
     combined_events_df.cache()
 
     window_spec = (
-        Window.partitionBy("id").orderBy("timestamp").rowsBetween(Window.unboundedPreceding, Window.currentRow)
+        Window.partitionBy(F.col("id"))
+        .orderBy(F.col("timestamp"))
+        .rowsBetween(Window.unboundedPreceding, Window.currentRow)
     )
-    # adding rowsBetween just for the sake of clarity as this is the standard behaviour
 
-    # ff for every column
-    for column_name in ["bid", "ask", "price", "quantity"]:
-        combined_events_df = combined_events_df.withColumn(
-            column_name, last(col(column_name), ignorenulls=True).over(window_spec)
-        )
+    value_columns = ["bid", "ask", "price", "quantity"]
+    select_expressions = ["id", "timestamp"] + [
+        F.last(F.col(column_name), ignorenulls=True).over(window_spec).alias(column_name)
+        for column_name in value_columns
+    ]
 
-    return combined_events_df.orderBy("id", "timestamp")
+    result_df = combined_events_df.select(*select_expressions).orderBy(F.col("id"), F.col("timestamp"))
+
+    combined_events_df.unpersist()
+    return result_df
