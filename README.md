@@ -1,15 +1,15 @@
 # Trading Data Spark Assignment
 
 ### Note
-I've setup pyspark==3.5.1 instead of pyspark==2.3.0 as suggested in the requirements.txt just because **2.3.0 instalation is broken on poetry**. As it would be more convenient to me to use poetry to setting up the project structure and development environment I've upgraded the version to the most up to date.
+I've used pyspark==3.5.1 instead of pyspark==2.3.0 as suggested in the requirements.txt just because **2.3.0 installation is broken on poetry**. As it would be more convenient for me to use poetry to set up the project structure and development environment I've decided to upgrade it so I would not need to work on any crazy workarounds.
 The code should run ok in pyspark==2.3.0 anyway as I'm using no newly introduced features.
 
-Poetry also isolates the environment to you can install this version without fear of interfering in your setup.
+Poetry also isolates the environment so you can install this version without fear of interfering with your own setup.
 
 ## How to install
 
 [**Install Poetry**](https://python-poetry.org/docs/)
-Strongly recommend to use pipx to do it!
+I Strongly recommend using pipx to do it!
 
 and then:
 
@@ -23,7 +23,7 @@ Simple run:
 make run
 ```
 
-Alternatively you can run main.py directly if you want:
+Alternatively, you can run main.py directly if you want:
 ```bash
 spark-submit src/app/main.py
 ```
