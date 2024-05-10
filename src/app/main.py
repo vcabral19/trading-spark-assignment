@@ -15,11 +15,11 @@ def main():
     prices.show()
 
     print("Printing forward fill DataFrame: ")
-    fill(trades, prices).explain()
+    #fill(trades, prices).explain()
     fill(trades, prices).show()
 
     print("Printing pivot DataFrame: ")
-    pivot(trades, prices).explain()
+    #pivot(trades, prices).explain()
     pivot(trades, prices).show()
 
 
